@@ -35,6 +35,14 @@ if __name__ == '__main__':
     result = ""
 
     for func in tokens:
+        func.arg_types = [the_types[var.token] for var in func.args]
+        i = 0
+        while i < len(func.tokens):
+            if func.tokens[i] == "access":
+                del func.tokens[i]
+                del func.tokens[i]
+                i -= 1
+            i += 1
         print(func.name, func.return_type, func.args, func.arg_types, func.arg_constraints, func.tokens, func.declaration)
         print(the_types)
         if issubclass(type(func), standard.Function):
@@ -45,7 +53,7 @@ if __name__ == '__main__':
             compiled_code = decompiler.IRToCDecompiler(the_function, the_types, the_included_libraries, the_external_variables).generate_c_code()
             result += compiled_code
 
-    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    print("\n\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
     print(result)
 
 
