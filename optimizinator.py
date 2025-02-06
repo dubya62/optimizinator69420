@@ -18,9 +18,6 @@ if __name__ == '__main__':
     program = main.Main()
     tokens, token_types = program.start(["main.py", "testcase.c"])
 
-    the_types = {}
-    for x in range(len(token_types)):
-        the_types[f"#{x}"] = token_types[x]
 
 
     # run the optimizer
@@ -33,6 +30,17 @@ if __name__ == '__main__':
     # run the ir -> C decompiler
 
     result = ""
+
+
+    the_types = {}
+    for x in range(len(token_types)):
+        if issubclass(type(token_types[x]), standard.Type):
+            the_types[f"#{x}"] = token_types[x].type
+            if issubclass(type(token_types[x]), standard.Type):
+                the_types[f"#{x}"] = token_types[x].type.type
+        else:
+            the_types[f"#{x}"] = token_types[x]
+
 
     for func in tokens:
         func.arg_types = [the_types[var.token] for var in func.args]
