@@ -2,7 +2,7 @@
 from debug import *
 from token import *
 
-from types import *
+from standard_types import *
 import standard
 
 
@@ -752,23 +752,28 @@ class Operator:
             match(type_tokens[i]):
                 case "int":
                     size = "32"
-                    sign = "i"
+                    if len(sign) == 0:
+                        sign = "i"
                 case "long":
                     size = "64"
-                    sign = "i"
+                    if len(sign) == 0:
+                        sign = "i"
                 case "short":
                     size = "16"
-                    sign = "i"
+                    if len(sign) == 0:
+                        sign = "i"
                 case "float":
                     sign = "f"
                 case "double":
                     sign = "f"
                 case "unsigned":
                     sign = "u"
+                    print("set sign to u")
                 case "signed":
                     sign = "i"
                 case "char":
-                    sign = "u"
+                    if len(sign) == 0:
+                        sign = "u"
                     size = "8"
                 case "void":
                     sign = "void"
@@ -1435,7 +1440,7 @@ class Operator:
                     declaration = False
 
                     print(f"ARGS: {args}")
-                    arg_names = [x[0] for x in args]
+                    arg_names = [x[0] if len(x) > 0 else "" for x in args]
                     print(f"ARGNAMES: {arg_names}")
                     if len(args) == 1 and len(args[0]) == 1 and args[0][0] == "$TYPE" and len(args[0][0].types) == 1 and args[0][0].types[0] == "void":
                         arg_types = [self.variable_types[x] for x in args]

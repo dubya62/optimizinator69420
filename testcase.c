@@ -1,22 +1,23 @@
 
-void test(unsigned char c){
-    c = 2;
-}
 
-int add(int a, int b){
-    int c = a + b;
-}
+struct TestStruct{
+    int a;
+    int *b;
+};
 
-int mul(int a, int b){
-    int c = a * b;
-}
+union TestUnion{
+    int a;
+    int *b;
+};
+
 
 int main(int argc, char** argv){
-    char* test = "Hello, World!\n";
+    struct TestStruct* test;
+    struct TestStruct test2;
 
-    int example = (int) (*test);
+    union TestUnion* test3;
+    union TestUnion test4;
 
-    add(2, 3);
-    mul(3, 4);
-
+    int a = (unsigned int) -7;
+    return 0;
 }

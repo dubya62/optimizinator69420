@@ -2,7 +2,7 @@
 from token import *
 from debug import *
 
-import types
+import standard_types
 
 
 def is_int_literal(token):
@@ -33,6 +33,9 @@ class Simplifier:
 
         # create extra scopes
         self.tokens = self.create_extra_scopes(self.tokens)
+
+        # handle do-while loops
+        self.tokens = self.handle_do_while_loops(self.tokens)
 
         # generalize variables
         self.definitions = {}
@@ -136,10 +139,10 @@ class Simplifier:
                 i = return_index
 
                 if tokens[i] == "union":
-                    new_union = types.Union(the_name, the_types, tokens[i].line_number, tokens[i].filename)
+                    new_union = standard_types.Union(the_name, the_types, tokens[i].line_number, tokens[i].filename)
                     tokens[i] = new_union
                 elif tokens[i] == "struct":
-                    new_struct = types.Structure(the_name, the_types, tokens[i].line_number, tokens[i].filename)
+                    new_struct = standard_types.Structure(the_name, the_types, tokens[i].line_number, tokens[i].filename)
                     tokens[i] = new_struct
 
             elif tokens[i].token in builtin_types:
@@ -174,7 +177,7 @@ class Simplifier:
                         i += 1
 
                 i = starting_index
-                new_enum = types.Enum(the_type, tokens[i].line_number, tokens[i].filename)
+                new_enum = standard_types.Enum(the_type, tokens[i].line_number, tokens[i].filename)
                 tokens[i] = new_enum
 
             
@@ -225,7 +228,7 @@ class Simplifier:
             j += 1
 
         i = return_index
-        tokens.insert(i, types.Type(result, the_line_number, the_filename))
+        tokens.insert(i, standard_types.Type(result, the_line_number, the_filename))
         n += 1
         return n - starting_len
 
@@ -387,12 +390,98 @@ class Simplifier:
 
         return tokens
 
+
+    def handle_do_while_loops(self, tokens:list[Token]) -> list[Token]:
+        """
+        Do-while loops:
+            do { stuff } while (condition);
+            =>
+            {
+                stuff;
+                while (condition){
+                    stuff;
+                }
+            }
+        """
+
+        i = 0
+        n = len(tokens)
+        while i < n:
+            if tokens[i] == "do":
+                # look for the ending }
+                brace_stack = []
+                j = i
+                inner_content = []
+                while j < n:
+                    if tokens[j] == "{":
+                        brace_stack.append("{")
+                    elif tokens[j] == "}":
+                        if len(brace_stack) == 0:
+                            fatal_error(tokens[j], "Unmatched }...")
+                        brace_stack.pop()
+                        if len(brace_stack) == 0:
+                            break
+
+                    if len(brace_stack) > 0:
+                        inner_content.append(tokens[j])
+                    j += 1
+
+                # the next tokens should be: while (condition);
+                if j + 1 >= len(tokens) or tokens[j+1] != "while":
+                    fatal_error(tokens[j], "Expected 'while' after do block.")
+
+                if j + 2 >= len(tokens) or tokens[j+2] != "(":
+                    fatal_error(tokens[j], "Expected condition after while block.")
+
+                k = j + 2
+                condition = []
+                parenthesis_stack = []
+                while k < n:
+                    if tokens[k] == "(":
+                        parenthesis_stack.append("(")
+                    elif tokens[k] == ")":
+                        if len(parenthesis_stack) == 0:
+                            fatal_error(tokens[k], "Unmatched }...")
+                        parenthesis_stack.pop()
+                        if len(parenthesis_stack) == 0:
+                            break
+
+                    if len(parenthesis_stack) > 0:
+                        condition.append(tokens[k])
+                    k += 1
+                    
+                # we now have the entire statement
+                replacement = []
+                for tok in inner_content:
+                    replacement.append(tok)
+                replacement.append(Token("while", tokens[i].filename, tokens[i].line_number))
+                for tok in condition:
+                    replacement.append(tok)
+                replacement.append(Token(")", tokens[i].filename, tokens[i].line_number))
+                for tok in inner_content:
+                    if tok != "$TYPE":
+                        replacement.append(tok)
+                replacement.append(Token("}", tokens[i].filename, tokens[i].line_number))
+                replacement.append(Token("}", tokens[i].filename, tokens[i].line_number))
+
+                print("REPLACEMENT")
+                print(replacement)
+
+                tokens = tokens[:i] + replacement + tokens[k:]
+                n = len(tokens)
+            
+            i += 1
+
+        
+        return tokens 
+
+
     def generalize_variables(self, tokens:list[Token]) -> list[Token]:
         dbg("Generalizing variables...")
         i = 0
         n = len(tokens)
 
-        builtins = set(["++", "--", "*", "+", "-", "(", ")", ".", "[", "]", "{", "}", "<", ">", ",", "/", "=", "|", "%", "#", "!", "~", "^", "&", ";", ":", "?", "return", "break", "void", "if", "else", "for", "while", "switch", "case", "short", "long", "const", "unsigned", "struct", "signed", "sizeof", "continue", "auto", "register", "static", "$STRUCT", "$UNION", "$ENUM", "$TYPE", "#FIXFUNC", "goto"])
+        builtins = set(["++", "--", "*", "+", "-", "(", ")", ".", "[", "]", "{", "}", "<", ">", ",", "/", "=", "|", "%", "#", "!", "~", "^", "&", ";", ":", "?", "return", "break", "void", "if", "else", "for", "while", "switch", "case", "short", "long", "const", "unsigned", "struct", "signed", "sizeof", "continue", "auto", "register", "static", "$STRUCT", "$UNION", "$ENUM", "$TYPE", "#FIXFUNC", "goto", "do"])
 
         scopes = [{}]
 
