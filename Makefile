@@ -1,6 +1,6 @@
 
 optimizinator: rbe picir compiler
-	python optimizinator.py
+	python3 optimizinator.py
 
 .PHONY: rbe picir compiler
 
